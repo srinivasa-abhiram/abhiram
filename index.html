@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  (function () {
+    const savedThemeMode = localStorage.getItem('themeMode');
+    if (savedThemeMode === 'dark' || savedThemeMode === 'light') {
+      document.documentElement.setAttribute('data-theme', savedThemeMode);
+    }
+  })();
+</script>
+<title>Srinivasa Abhiram Personal Website</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ══════════ THEME VARIABLES ══════════ */
+  :root {
+    /* Dark Mode */
+    --bg: #030305;
+    --text-main: #ffffff;
+    --text-muted: rgba(255,255,255,0.6);
+    --nav-bg: rgba(255,255,255,0.95);
+    --nav-text: #111111;
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.08);
+    --card-hover: rgba(255,255,255,0.08);
+    --tool-bg: rgba(255,255,255,0.1);
+    --mint: #00e5a0;
+    --blue: #3b3bff;
+    --violet: #6633ff;
+    
+    /* Layout */
+    --pill-h: 52px;
+    --pill-r: 16px;
+    --display-font: 'Source Serif 4', serif;
+  }
+
+  [data-theme="light"] {
+    /* Light Mode */
+    --bg: #f4f6f9;
+    --text-main: #0a0a0f;
+    --text-muted: rgba(0,0,0,0.6);
+    --nav-bg: rgba(10,10,15,0.95);
+    --nav-text: #ffffff;
+    --card-bg: #ffffff;
+    --card-border: rgba(0,0,0,0.08);
+    --card-hover: #ffffff;
+    --tool-bg: rgba(0,0,0,0.08);
+  }
+
+  /* Color Theme Presets */
+  :root[data-color="ocean"] { --mint: #0ea5e9; --blue: #06b6d4; --violet: #3b82f6; }
+  :root[data-color="sunset"] { --mint: #f97316; --blue: #fb923c; --violet: #f87171; }
+  :root[data-color="grape"] { --mint: #a855f7; --blue: #9333ea; --violet: #d946ef; }
+  :root[data-color="coral"] { --mint: #ff6b6b; --blue: #ff8787; --violet: #ff5252; }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    overflow-x: hidden;
+    cursor: none;
+    transition: background 0.5s ease, color 0.5s ease;
+  }
+
+  /* ── cursor ── */
+  #cur {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--mint);
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%,-50%);
+    mix-blend-mode: difference;
+    transition: width .18s, height .18s, background .18s;
+  }
+  #cur.big { width: 36px; height: 36px; background: var(--violet); }
+
+  /* ══════════ HERO MOTION BOX (Shrinking Animation) ══════════ */
+  #hero-container {
+    width: 100%;
+    height: 100vh;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    /* Keeps a clean gap before the next section */
+    margin-bottom: 2rem;
+  }
+
+  /* Static landing hero */
+  #hero-box {
+    position: relative;
+    background: #000000; /* Always dark to show stars */
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(94vw, 1328px);
+    aspect-ratio: 1328 / 500;
+    max-height: 84vh;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+  }
+
+  /* Fullscreen loading overlay that shrinks into the landing hero */
+  #hero-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 8000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    clip-path: inset(0px 0px 0px 0px round 0px);
+    will-change: clip-path, opacity;
+    pointer-events: none;
+  }
+
+  /* Canvas for warp speed background */
+  .warp-canvas {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* The overlay shrinks to the exact landing hero rectangle */
+  @keyframes shrinkOverlay {
+    to {
+      clip-path: inset(
+        var(--hero-target-top, 0px)
+        var(--hero-target-right, 0px)
+        var(--hero-target-bottom, 0px)
+        var(--hero-target-left, 0px)
+        round 40px
+      );
+    }
+  }
+  @keyframes fadeOverlay {
+    to {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  /* Text inside the hero box */
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    opacity: 1;
+    transform: none;
+    padding: 0 20px;
+  }
+
+  body.play-intro #hero-overlay {
+    display: flex;
+    animation: shrinkOverlay 0.56s cubic-bezier(0.76, 0, 0.24, 1) 1.8s forwards,
+      fadeOverlay 0.16s linear 2.36s forwards;
+  }
+
+  body.play-intro .hero-content {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3);
+    animation: animate__zoomIn 1s cubic-bezier(0.215, 0.61, 0.355, 1) 2.14s forwards;
+  }
+
+  @keyframes animate__zoomIn {
+    0% {
+      opacity: 0;
+      transform: scale3d(0.3, 0.3, 0.3);
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+      transform: scale3d(1, 1, 1);
+    }
+  }
+
+  .hero-content h1 {
+    font-family: var(--display-font);
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: -1px;
+    margin-bottom: 1rem;
+  }
+  .hero-content p {
+    font-size: clamp(.9rem, 1.5vw, 1.2rem);
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 2.5rem;
+  }
+  .hero-content p span {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    color: #fff;
+  }
+
+  .btn-gradient {
+    display: inline-block;
+    background: linear-gradient(90deg, var(--blue), var(--violet));
+    color: #fff;
+    padding: 1rem 2.2rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    text-decoration: none;
+    cursor: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-gradient:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(102, 51, 255, 0.4);
+  }
+
+  /* ══════════ HOME GLIMPSE SECTIONS ══════════ */
+  #about-preview, #updates, #publications, #blog-preview, #study-preview, #guidance-preview {
+    padding: clamp(3rem,6vw,5rem) clamp(1.5rem,6vw,6rem);
+    max-width: 1200px; margin: 0 auto;
+  }
+  #about-preview { max-width: 1320px; }
+  .about-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 70fr) minmax(0, 30fr);
+    gap: 1.6rem;
+    align-items: stretch;
+  }
+  .about-panel {
+    padding: 2.1rem 2.2rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+  }
+  .about-main-panel {
+    --about-avatar-size: 13rem;
+    --about-avatar-shift: calc((var(--about-avatar-size) / -4) - 78px);
+    --about-avatar-gap: 1rem;
+    position: relative;
+    padding-top: calc(.9rem + 12pt);
+    padding-right: 1.6rem;
+  }
+  .about-main-top {
+    margin-bottom: .6rem;
+  }
+  .about-heading-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    column-gap: var(--about-avatar-gap);
+    margin-bottom: 1.35rem;
+  }
+  .about-kicker {
+    display: inline-block;
+    padding: .18rem .7rem;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    color: var(--mint);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .about-copy {
+    font-size: .94rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 100%;
+  }
+  .about-main-title {
+    font-size: clamp(1.6rem, 4.6vw, 3.3rem);
+    margin-bottom: 0;
+    max-width: calc(100% - var(--about-avatar-size) - var(--about-avatar-gap) - .4rem);
+  }
+  .about-main-title .line {
+    display: block;
+    white-space: nowrap;
+  }
+  .about-copy + .about-copy { margin-top: 1rem; }
+  .about-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .9rem;
+    margin-top: 1.5rem;
+  }
+  .btn-secondary {
+    display: inline-block;
+    padding: 1rem 2rem;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 600;
+    transition: border-color .2s, transform .2s, color .2s;
+  }
+  .btn-secondary:hover {
+    border-color: var(--mint);
+    color: var(--mint);
+    transform: translateY(-2px);
+  }
+  .about-list {
+    display: grid;
+    gap: .95rem;
+    margin-top: .2rem;
+  }
+  .about-list-item {
+    padding: 1rem 1.05rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--card-border);
+  }
+  .about-list-item h3 {
+    font-family: var(--display-font);
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: .35rem;
+    color: var(--text-main);
+  }
+  .about-list-item p {
+    font-size: .86rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .about-mini-avatar {
+    width: var(--about-avatar-size);
+    height: var(--about-avatar-size);
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--mint) 55%, var(--card-border));
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: none;
+    justify-self: end;
+    align-self: end;
+    margin: var(--about-avatar-shift) -0.18rem 0 0;
+    transition: border-color .25s, transform .25s, box-shadow .25s, background .25s;
+  }
+  .about-mini-avatar:hover {
+    border-color: var(--mint);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 4px rgba(0,229,160,0.1);
+    background: transparent;
+  }
+  .about-mini-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+  .about-mini-fallback {
+    font-family: var(--display-font);
+    font-size: .76rem;
+    color: var(--text-muted);
+    padding: 0 .5rem;
+    line-height: 1.35;
+    text-align: center;
+  }
+  .updates-list { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 0; }
+  .update-item {
+    display: flex; gap: 1.5rem; padding: 1.4rem 1.6rem;
+    background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
+    transition: border-color .3s, transform .3s;
+  }
+  .update-item:hover { border-color: var(--mint); transform: translateX(6px); }
+  .update-date {
+    font-family: var(--display-font); font-size: .82rem; font-weight: 400;
+    color: var(--mint); white-space: nowrap; min-width: 90px; padding-top: .2rem;
+  }
+  .update-item h3 { font-family: var(--display-font); font-size: 1rem; font-weight: 400; margin-bottom: .35rem; }
+  .update-item p { font-size: .88rem; color: var(--text-muted); line-height: 1.7; }
+  .update-tag {
+    display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .7rem;
+    border: 1px solid var(--card-border); color: var(--text-muted); margin-top: .5rem;
+  }
+  .section-cta { margin-top: 2.2rem; display: block; }
+  .pub-card {
+    padding: 1.8rem; background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; transition: border-color .3s, transform .3s; margin-bottom: 1.2rem;
+  }
+  .pub-card:hover { border-color: var(--mint); transform: translateY(-4px); }
+  .pub-title { font-family: var(--display-font); font-size: 1.15rem; font-weight: 400; margin-bottom: .4rem; }
+  .pub-meta { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--mint); margin-bottom: .7rem; }
+  .pub-abstract { font-size: .88rem; color: var(--text-muted); line-height: 1.75; }
+
+  /* ══════════ SITE FOOTER ══════════ */
+  .site-footer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.4rem 1rem 2.8rem;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .landing-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .55rem;
+    width: min(94vw, 1328px);
+    text-decoration: none;
+  }
+  .landing-counter-label {
+    font-family: var(--display-font);
+    font-size: .95rem;
+    font-weight: 400;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.74);
+  }
+  .landing-counter img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* ══════════ NAV WRAPPER ══════════ */
+  #nav-wrap {
+    position: fixed;
+    top: 1.2rem; left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    opacity: 1;
+    width: min(94vw, 1060px);
+  }
+  @keyframes navIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-18px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  #pill {
+    position: relative;
+    height: var(--pill-h);
+    width: 100%;
+    background: var(--nav-bg);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border-radius: var(--pill-r);
+    box-shadow: 0 8px 40px rgba(0,0,0,.15);
+    display: flex; align-items: center;
+    transition: width .5s cubic-bezier(.4,0,.2,1), background 0.5s;
+    will-change: width;
+    transform: translateZ(0);
+  }
+  #nav-wrap.collapsed #pill { width: var(--pill-h); }
+
+  .nm {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate3d(-50%,-50%,0);
+    z-index: 2; pointer-events: auto;
+    will-change: transform;
+  }
+  .hb {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--text-main); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: none; color: var(--bg); text-decoration: none;
+    transform: translateZ(0);
+    transition: box-shadow .2s, background 0.5s, color 0.5s;
+  }
+  .hb:hover { box-shadow: inset 0 0 0 2px rgba(0,229,160,0.35); }
+  .hb.active {
+    background: var(--mint);
+    color: #000;
+    box-shadow: inset 0 0 0 2px rgba(0,229,160,0.15);
+  }
+  .hb svg { width: 17px; height: 17px; fill: currentColor; }
+
+  .ns {
+    position: absolute; top: 0; height: 100%;
+    display: flex; align-items: center; gap: .2rem; padding: 0 .9rem;
+    transition: opacity .35s cubic-bezier(.4,0,.2,1), clip-path .35s cubic-bezier(.4,0,.2,1);
+    white-space: nowrap;
+    clip-path: inset(0 -50px -250px -50px);
+  }
+  .ns.l { left: 0; justify-content: flex-start; }
+  .ns.r { right: 0; justify-content: flex-end; }
+  #nav-wrap.collapsed .ns {
+    opacity: 0; clip-path: inset(0 50% 0 50%); pointer-events: none;
+  }
+
+  .nl {
+    font-family: var(--display-font); font-size: 1rem; font-weight: 300;
+    color: var(--nav-text); text-decoration: none;
+    padding: .42rem .9rem; border-radius: 10px; white-space: nowrap;
+    transition: background .2s, color 0.5s;
+    position: relative;
+  }
+  .nl:hover { color: var(--mint); }
+  .nl.active { background: var(--mint); color: #000; }
+  .nl.active-preview {
+    background: transparent;
+    color: var(--mint);
+    box-shadow: inset 0 0 0 1.5px var(--mint);
+  }
+
+  /* Dropdown */
+  .dropdown { position: relative; display: flex; align-items: center; height: 100%; }
+  .dropdown > .nl { display: flex; align-items: center; gap: 6px; }
+  .dropdown .arrow { width: 12px; height: 12px; fill: currentColor; transition: transform 0.3s; }
+  .dropdown:hover .arrow { transform: rotate(180deg); }
+  
+  .dropdown-menu {
+    position: absolute; top: calc(100% + 10px); left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--nav-bg); border-radius: var(--pill-r);
+    box-shadow: 0 10px 40px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; padding: 0.4rem; min-width: max-content;
+    opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(.4,0,.2,1); z-index: -1;
+  }
+  .dropdown:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); z-index: 100; }
+  .dropdown.open-force .dropdown-menu { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); z-index: 100; }
+  .dropdown-menu .nl { text-align: center; width: 100%; }
+
+  #chev {
+    background: var(--tool-bg); backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border); border-radius: 8px;
+    padding: 4px 20px 5px; cursor: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, border-color .2s;
+  }
+  #chev:hover { border-color: var(--mint); }
+  #chev svg {
+    width: 16px; height: 16px; stroke: var(--text-muted); stroke-width: 2.5;
+    fill: none; stroke-linecap: round; stroke-linejoin: round;
+    transition: stroke .25s, transform .4s cubic-bezier(.4,0,.2,1);
+  }
+  #nav-wrap.collapsed #chev svg { transform: rotate(180deg); stroke: var(--mint); }
+
+  .nav-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: var(--tool-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 0.32rem 0.7rem;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s ease, transform 0.2s ease, left 0.2s ease, right 0.2s ease;
+    pointer-events: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-4px);
+    white-space: nowrap;
+  }
+  #nav-wrap:hover .nav-hint,
+  #nav-wrap:focus-within .nav-hint {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #nav-wrap.collapsed .nav-hint { opacity: 0; }
+
+  /* ══════════ CONTENT ══════════ */
+  #content {
+    padding: clamp(4rem,8vw,7rem) clamp(1.5rem,6vw,6rem);
+    max-width: 1200px; margin: 0 auto;
+  }
+  .st {
+    font-family: var(--display-font); font-size: clamp(1.8rem,5vw,3.3rem); font-weight: 400;
+    line-height: 1.1; margin-bottom: 2rem; color: var(--text-main);
+  }
+  .cards {
+    display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 1.4rem; margin-top: 2.8rem;
+  }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.9rem;
+    transition: transform .3s, border-color .3s, background .3s, box-shadow .3s;
+  }
+  .card:hover {
+    transform: translateY(-7px); border-color: var(--mint); background: var(--card-hover);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+  .ci {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg,var(--blue),var(--violet));
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.1rem; font-size: 1.15rem; color: white;
+  }
+  .card h3 { font-family: var(--display-font); font-size: 1rem; font-weight: 400; margin-bottom: .5rem; color: var(--text-main); }
+  .card p  { font-size: .88rem; color: var(--text-muted); line-height: 1.7; }
+
+  /* ══════════ BOTTOM-RIGHT UTILS ══════════ */
+  .bottom-tools {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; align-items: center; gap: 12px; z-index: 9300;
+    opacity: 1;
+  }
+  @keyframes up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .tool-btn {
+    background: var(--tool-bg); backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border); border-radius: 30px;
+    height: 44px; display: flex; align-items: center; padding: 0 16px;
+    color: var(--text-main); font-family: 'DM Sans', sans-serif; font-weight: 600; cursor: none;
+    transition: background 0.2s, border-color 0.2s, color 0.5s;
+  }
+  .tool-btn:hover { border-color: var(--mint); color: var(--mint); }
+  .tool-btn svg { width: 18px; height: 18px; fill: currentColor; transition: transform 0.3s; }
+
+  /* Custom Sun/Moon Cloud Toggle */
+  .theme-toggle {
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+  .theme-toggle .icon-wrap {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+  }
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon {
+    position: absolute;
+    inset: 0;
+    width: 28px;
+    height: 28px;
+    stroke: currentColor;
+    fill: none;
+    transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .theme-toggle .sun-rotor {
+    transform-origin: 12px 12px;
+    animation: sunSpin 10s linear infinite;
+  }
+  .theme-toggle .moon-cloud {
+    transform-origin: 16px 17px;
+    animation: moonCloudFloat 3.2s ease-in-out infinite;
+  }
+  @keyframes sunSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes moonCloudFloat {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-1.4px); }
+  }
+  html[data-theme="dark"] .theme-toggle .icon-sun { opacity: 0; transform: scale(0.7) rotate(-40deg); }
+  html[data-theme="dark"] .theme-toggle .icon-moon { opacity: 1; transform: scale(1) rotate(0deg); }
+  html[data-theme="light"] .theme-toggle .icon-sun { opacity: 1; transform: scale(1) rotate(0deg); }
+  html[data-theme="light"] .theme-toggle .icon-moon { opacity: 0; transform: scale(0.7) rotate(30deg); }
+
+  /* Color Theme Selector */
+  .color-theme-wrapper { position: relative; z-index: 9500; }
+  .color-theme-menu {
+    position: absolute; bottom: calc(100% + 10px); right: 0;
+    background: var(--nav-bg); backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border); border-radius: 14px;
+    padding: 0.45rem; display: none; flex-direction: column; gap: 2px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.15);
+    z-index: 9600;
+  }
+  .color-theme-menu.open { display: flex; }
+  .theme-preset {
+    padding: 0.5rem 0.85rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    border: 1px solid transparent; cursor: none; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    font-weight: 600;
+  }
+  .theme-preset:hover { transform: scale(1.05); }
+
+  /* Search */
+  .search-container { position: relative; display: flex; align-items: center; }
+  .search-trigger {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--tool-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+    cursor: none;
+    z-index: 2;
+    transition: border-color .25s ease, color .25s ease, background .25s ease;
+  }
+  .search-trigger:hover,
+  .search-input:focus + .search-trigger,
+  .search-container:focus-within .search-trigger {
+    border-color: var(--mint);
+    color: var(--mint);
+  }
+  .search-input {
+    background: var(--tool-bg); backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border); border-radius: 30px;
+    height: 44px; width: 44px; padding: 0 16px 0 54px;
+    color: var(--text-main); font-family: inherit; outline: none;
+    transition: width 0.4s ease, border-color 0.25s; cursor: none;
+  }
+  .search-input::placeholder { color: transparent; }
+  .search-input:focus, .search-input:not(:placeholder-shown) { width: 200px; cursor: text; border-color: var(--mint); }
+  .search-input:focus::placeholder { color: var(--text-muted); transition-delay: 0.3s; }
+  .search-icon { width: 16px; height: 16px; fill: currentColor; pointer-events: none; }
+  .search-input.search-miss { border-color: #ff6a6a; }
+
+  .search-nav {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 22px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.2) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
+    color: var(--mint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease, border-color .2s ease, transform .1s ease, box-shadow .1s ease;
+    z-index: 3;
+    cursor: none;
+  }
+  .search-nav svg {
+    width: 16px;
+    height: 12px;
+    stroke: currentColor;
+    stroke-width: 4px;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .search-up {
+    top: -26px;
+  }
+  .search-down {
+    top: auto;
+    bottom: -26px;
+  }
+  .search-container.has-results .search-nav {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .search-nav:hover { border-color: rgba(0, 229, 160, 0.6); }
+  .search-nav.active,
+  .search-nav:active {
+    transform: translateX(-50%) scale(0.92);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .search-hit-text {
+    background: rgba(0, 229, 160, 0.24);
+    border-radius: 4px;
+    padding: 0 2px;
+    transition: background .2s ease;
+  }
+  .search-hit-text.active {
+    background: rgba(0, 229, 160, 0.55);
+    animation: hitPulse 1.2s ease;
+  }
+  .home-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .home-shortcut svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+  .nl.search-star,
+  .hb.search-star,
+  .home-shortcut.search-star {
+    position: relative;
+  }
+  .nl.search-star::after,
+  .hb.search-star::after,
+  .home-shortcut.search-star::after {
+    content: "*";
+    position: absolute;
+    top: -9px;
+    right: -10px;
+    color: #ffd166;
+    font-size: 1.2rem;
+    line-height: 1;
+    text-shadow: 0 0 12px rgba(255, 209, 102, 0.6);
+  }
+  .search-container.search-has-cross::after {
+    content: "*";
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    color: #ffd166;
+    font-size: 1.3rem;
+    line-height: 1;
+    text-shadow: 0 0 14px rgba(255, 209, 102, 0.65);
+  }
+  @keyframes hitPulse {
+    0% { box-shadow: 0 0 0 0 rgba(0,229,160,0.6); }
+    100% { box-shadow: 0 0 0 14px rgba(0,229,160,0); }
+  }
+
+
+
+  /* Reveal logic */
+  .rv { opacity: 0; transform: translateY(28px); transition: opacity .7s, transform .7s; }
+  .rv.in { opacity: 1; transform: none; }
+
+  body.play-intro #nav-wrap {
+    opacity: 0;
+    animation: navIn .5s ease 3.5s forwards;
+  }
+
+  body.play-intro .bottom-tools {
+    opacity: 0;
+    animation: up .5s ease 3.7s forwards;
+  }
+
+  @media(max-width:600px){
+    #pill { width: calc(100vw - 2rem) !important; }
+    #nav-wrap.collapsed #pill { width: var(--pill-h) !important; }
+    .nl { font-size: .85rem; padding: .38rem .6rem; }
+    .nav-hint { font-size: 0.72rem; padding: 0.28rem 0.55rem; }
+    .bottom-tools { bottom: .9rem; right: .9rem; }
+    .about-grid { grid-template-columns: 1fr; }
+    .about-main-panel {
+      --about-avatar-size: 7.375rem;
+      --about-avatar-shift: calc((var(--about-avatar-size) / -4) - 36px);
+      --about-avatar-gap: .7rem;
+      padding-top: calc(1.5rem + 12pt);
+    }
+    .about-main-top { margin-bottom: .6rem; }
+    .about-heading-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      column-gap: var(--about-avatar-gap);
+      margin-bottom: 1rem;
+    }
+    .about-mini-avatar {
+      margin: var(--about-avatar-shift) -.08rem 0 0;
+    }
+    .about-main-title {
+      max-width: calc(100% - var(--about-avatar-size) - var(--about-avatar-gap) - .3rem);
+      font-size: clamp(1.55rem, 8.2vw, 2.45rem);
+    }
+    .about-main-title .line { white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+
+<!-- NAV WRAP -->
+<div id="nav-wrap">
+  <nav id="pill">
+    <!-- left links -->
+    <div class="ns l">
+      <a href="#about-preview" class="nl" data-nav="about" data-double="about.html">About Me</a>
+      <a href="#updates" class="nl" data-nav="updates" data-double="updates.html">Updates</a>
+      <a href="#publications" class="nl" data-nav="publications" data-double="publications.html">Publications</a>
+    </div>
+
+    <!-- home button — absolutely centred, never moves -->
+    <div class="nm">
+      <a href="#hero-container" class="hb" title="Home" data-nav="home">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </a>
+    </div>
+
+    <!-- right links -->
+    <div class="ns r">
+      <!-- BLOG DROPDOWN -->
+      <div class="dropdown">
+        <a href="#blog-preview" class="nl" data-nav="blog" data-double="blog-formal.html">
+          Blog
+          <svg class="arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </a>
+        <div class="dropdown-menu">
+          <a href="blog-formal.html" class="nl">Formal</a>
+          <a href="blog-informal.html" class="nl">Informal</a>
+        </div>
+      </div>
+      <!-- STUDY RESOURCES DROPDOWN -->
+      <div class="dropdown">
+        <a href="#study-preview" class="nl" data-nav="study" data-double="study-physics.html">
+          Study Resources
+          <svg class="arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </a>
+        <div class="dropdown-menu">
+          <a href="study-physics.html" class="nl">Physics</a>
+          <a href="study-latex.html" class="nl">LaTeX</a>
+        </div>
+      </div>
+      <a href="#guidance-preview" class="nl" data-nav="guidance" data-double="guidance.html">Guidance</a>
+    </div>
+  </nav>
+
+  <!-- chevron -->
+  <button id="chev" aria-label="Toggle navigation">
+    <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+  <div class="nav-hint">Single click for a glimpse, double click for detailed view.</div>
+</div>
+
+<!-- HERO ANIMATION BOX -->
+<div id="hero-container">
+  <div id="hero-box">
+    <!-- Warp speed background canvas -->
+    <canvas id="warpCanvasStatic" class="warp-canvas"></canvas>
+    
+    <!-- Hero Text that appears after shrink -->
+    <div class="hero-content">
+      <h1>Hi, I'm Srinivasa Abhiram</h1>
+      <p><span>Graduate Researcher</span> at IIT Hyderabad — research updates, publications, study resources, and scientific writing.</p>
+      <span class="btn-gradient">Graduate Researcher, IIT Hyderabad</span>
+    </div>
+  </div>
+</div>
+
+<div id="hero-overlay" aria-hidden="true">
+  <canvas id="warpCanvasOverlay" class="warp-canvas"></canvas>
+</div>
+
+<!-- CONTENT -->
+<section id="about-preview">
+  <div class="about-grid">
+    <div class="about-panel rv about-main-panel">
+      <div class="about-main-top">
+        <span class="about-kicker">About Me</span>
+      </div>
+      <div class="about-heading-row">
+        <h2 class="st about-main-title"><span class="line">Built for science,</span><span class="line">designed for humanity.</span></h2>
+        <div class="about-mini-avatar" id="mainProfileAvatar" title="Click to upload your profile photo">
+          <img id="mainProfileImg" src="" alt="Profile Photo">
+          <span id="mainProfileFallback" class="about-mini-fallback">Upload<br>Photo</span>
+        </div>
+      </div>
+      <p class="about-copy">I use this space to share research progress, write clearly about physics, and build study material that respects the reader's time and intelligence. The purpose is simple: keep the science rigorous without making it needlessly inaccessible.</p>
+      <p class="about-copy">My work sits at the intersection of research, teaching, and scientific writing. I care about strong foundations, elegant explanations, and resources that help students move from confusion to confidence.</p>
+      <div class="about-actions">
+        <a href="mailto:hello@example.com?subject=Curriculum%20Vitae%20Request" class="btn-gradient">Curriculum Vitae</a>
+        <a href="about.html" class="btn-secondary">More About Me</a>
+      </div>
+    </div>
+    <div class="about-panel rv">
+      <span class="about-kicker">Current Focus</span>
+      <div class="about-list">
+        <div class="about-list-item"><h3>Research</h3><p>Quantum mechanics, topological systems, and mathematical physics with an emphasis on conceptual clarity.</p></div>
+        <div class="about-list-item"><h3>Writing</h3><p>Formal and informal essays that make difficult ideas readable without flattening them.</p></div>
+        <div class="about-list-item"><h3>Teaching</h3><p>Notes, guidance, and study resources aimed at students building a serious foundation in physics.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UPDATES SECTION -->
+<section id="updates">
+  <div class="rv">
+    <h2 class="st">Updates</h2>
+  </div>
+  <div class="updates-list">
+    <div class="update-item rv">
+      <span class="update-date">Mar 2026</span>
+      <div>
+        <h3>New preprint submitted to arXiv</h3>
+        <p>Working paper on quantum coherence in topological systems — draft available on request.</p>
+        <span class="update-tag">Research</span>
+      </div>
+    </div>
+    <div class="update-item rv">
+      <span class="update-date">Feb 2026</span>
+      <div>
+        <h3>Talk at Regional Physics Symposium</h3>
+        <p>Presented ongoing work on semiclassical approximations and their breakdown at phase transitions.</p>
+        <span class="update-tag">Event</span>
+      </div>
+    </div>
+    <div class="update-item rv">
+      <span class="update-date">Jan 2026</span>
+      <div>
+        <h3>New blog post published</h3>
+        <p>Wrote an introductory piece on the Euler–Lagrange equations for undergraduate students.</p>
+        <span class="update-tag">Blog</span>
+      </div>
+    </div>
+  </div>
+  <a href="updates.html" class="btn-gradient section-cta">All Updates →</a>
+</section>
+
+<!-- PUBLICATIONS SECTION -->
+<section id="publications">
+  <div class="rv">
+    <h2 class="st">Publications</h2>
+  </div>
+  <div class="pub-card rv">
+    <div class="pub-title">Quantum Coherence in Topological Systems</div>
+    <div class="pub-meta">Journal of Physics A · 2025</div>
+    <div class="pub-abstract">We investigate the persistence of quantum coherence in systems with non-trivial topological order, showing that edge states provide a protected coherence channel robust to local perturbations.</div>
+  </div>
+  <div class="pub-card rv">
+    <div class="pub-title">Semiclassical Approximations Near Phase Transitions</div>
+    <div class="pub-meta">Physical Review B · 2024</div>
+    <div class="pub-abstract">A systematic analysis of where semiclassical WKB methods fail near second-order phase transitions, with corrections derived from path-integral methods.</div>
+  </div>
+  <a href="publications.html" class="btn-gradient section-cta">All Publications →</a>
+</section>
+
+<!-- BLOG SECTION -->
+<section id="blog-preview">
+  <div class="rv">
+    <h2 class="st">Blog</h2>
+  </div>
+  <div class="updates-list">
+    <a href="blog-formal.html" class="update-item rv" style="text-decoration:none;color:inherit;display:block;">
+      <span class="update-date">Formal</span>
+      <div>
+        <h3>Academic notes and deep dives</h3>
+        <p>Long-form posts on physics, mathematics, and research methods with precise arguments and references.</p>
+        <span class="update-tag">Formal Writing</span>
+      </div>
+    </a>
+    <a href="blog-informal.html" class="update-item rv" style="text-decoration:none;color:inherit;display:block;">
+      <span class="update-date">Informal</span>
+      <div>
+        <h3>Personal learning notes</h3>
+        <p>Casual reflections on studying physics, building intuition, and navigating research life as a student.</p>
+        <span class="update-tag">Informal Writing</span>
+      </div>
+    </a>
+  </div>
+  <a href="blog-formal.html" class="btn-gradient section-cta">Open Blog →</a>
+</section>
+
+<!-- STUDY RESOURCES SECTION -->
+<section id="study-preview">
+  <div class="rv">
+    <h2 class="st">Study Resources</h2>
+  </div>
+  <div class="updates-list">
+    <a href="study-physics.html" class="update-item rv" style="text-decoration:none;color:inherit;display:block;">
+      <span class="update-date">Physics</span>
+      <div>
+        <h3>Core physics tracks</h3>
+        <p>Curated notes and practice sets for mechanics, quantum, electrodynamics, and statistical physics.</p>
+        <span class="update-tag">Concept + Problems</span>
+      </div>
+    </a>
+    <a href="study-latex.html" class="update-item rv" style="text-decoration:none;color:inherit;display:block;">
+      <span class="update-date">LaTeX</span>
+      <div>
+        <h3>Scientific writing toolkit</h3>
+        <p>Templates, equation guides, and writing workflows for papers, reports, and technical presentations.</p>
+        <span class="update-tag">Writing Tools</span>
+      </div>
+    </a>
+  </div>
+  <a href="study-physics.html" class="btn-gradient section-cta">Open Study Resources →</a>
+</section>
+
+<!-- GUIDANCE SECTION -->
+<section id="guidance-preview">
+  <div class="rv">
+    <h2 class="st">Guidance</h2>
+  </div>
+  <div class="pub-card rv">
+    <div class="pub-title">For students who want direction and momentum</div>
+    <div class="pub-meta">Research Path · Study Habits · Writing Advice</div>
+    <div class="pub-abstract">A practical roadmap for starting research, improving problem-solving, and building durable academic habits. Includes FAQs and a recommended reading list to support long-term growth.</div>
+  </div>
+  <a href="guidance.html" class="btn-gradient section-cta">Open Guidance →</a>
+</section>
+
+<footer class="site-footer">
+  <span class="landing-counter-label">Personal web page.</span>
+</footer>
+
+<!-- BOTTOM-RIGHT UTILS -->
+<div class="bottom-tools">
+  <a class="tool-btn home-shortcut" href="index_Version8.html" aria-label="Home screen" title="Home">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+  </a>
+  
+  <!-- Expandable Search Bar -->
+  <div class="search-container">
+    <button class="search-nav search-up" type="button" aria-label="Previous match">
+      <svg viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"></polyline></svg>
+    </button>
+    <button class="search-trigger" type="button" aria-label="Focus search">
+      <svg class="search-icon" viewBox="0 0 24 24">
+        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      </svg>
+    </button>
+    <input type="text" class="search-input" placeholder="Search site...">
+    <button class="search-nav search-down" type="button" aria-label="Next match">
+      <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+  </div>
+
+  <!-- Theme Toggle (Sun / Moon) -->
+  <button class="tool-btn theme-toggle" id="themeBtn" aria-label="Toggle Light/Dark Mode">
+    <div class="icon-wrap">
+      <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <defs>
+          <radialGradient id="sunG" cx="50%" cy="45%" r="55%">
+            <stop offset="0%" stop-color="#FFD37A"></stop>
+            <stop offset="40%" stop-color="#FF9A3C"></stop>
+            <stop offset="100%" stop-color="#FF6A00"></stop>
+          </radialGradient>
+        </defs>
+        <g class="sun-rotor">
+          <circle cx="12" cy="12" r="5" fill="url(#sunG)" stroke="none"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </g>
+      </svg>
+      <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        <g class="moon-cloud">
+          <ellipse cx="16" cy="17" rx="4.5" ry="2.5" fill="currentColor" opacity="0.45"></ellipse>
+          <ellipse cx="18.5" cy="16.5" rx="3" ry="2" fill="currentColor" opacity="0.5"></ellipse>
+          <ellipse cx="14" cy="18" rx="2.5" ry="1.5" fill="currentColor" opacity="0.35"></ellipse>
+        </g>
+      </svg>
+    </div>
+  </button>
+
+  <!-- Color Theme Selector -->
+  <div class="color-theme-wrapper">
+    <button class="tool-btn" id="colorThemeBtn" aria-label="Change Color Theme" title="Color Theme">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+    </button>
+    <div class="color-theme-menu" id="colorThemeMenu">
+      <button class="theme-preset" data-theme="mint" style="background: #00e5a0; color: #000;" title="Mint">Mint</button>
+      <button class="theme-preset" data-theme="ocean" style="background: #0ea5e9; color: #fff;" title="Ocean">Ocean</button>
+      <button class="theme-preset" data-theme="sunset" style="background: #f97316; color: #fff;" title="Sunset">Sunset</button>
+      <button class="theme-preset" data-theme="grape" style="background: #a855f7; color: #fff;" title="Grape">Grape</button>
+      <button class="theme-preset" data-theme="coral" style="background: #ff6b6b; color: #fff;" title="Coral">Coral</button>
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+// ══════════ CURSOR ══════════
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+document.querySelectorAll('a, button, .lo, .card, .search-input').forEach(el => {
+  el.addEventListener('mouseenter', () => cur.classList.add('big'));
+  el.addEventListener('mouseleave', () => cur.classList.remove('big'));
+});
+
+// ══════════ THEME TOGGLE ══════════
+const themeBtn = document.getElementById('themeBtn');
+const savedThemeMode = localStorage.getItem('themeMode');
+if (savedThemeMode) {
+  document.documentElement.setAttribute('data-theme', savedThemeMode);
+}
+themeBtn.addEventListener('click', () => {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', nextTheme);
+  localStorage.setItem('themeMode', nextTheme);
+});
+
+// ══════════ COLOR THEME SELECTOR ══════════
+const colorThemeBtn = document.getElementById('colorThemeBtn');
+const colorThemeMenu = document.getElementById('colorThemeMenu');
+colorThemeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  colorThemeMenu.classList.toggle('open');
+});
+document.querySelectorAll('.theme-preset').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const theme = btn.dataset.theme;
+    document.documentElement.setAttribute('data-color', theme);
+    localStorage.setItem('colorTheme', theme);
+    colorThemeMenu.classList.remove('open');
+  });
+});
+document.addEventListener('click', () => colorThemeMenu.classList.remove('open'));
+// Load saved color theme
+const savedColorTheme = localStorage.getItem('colorTheme');
+if (savedColorTheme) {
+  document.documentElement.setAttribute('data-color', savedColorTheme);
+}
+
+// ══════════ NAV COLLAPSE ══════════
+const wrap = document.getElementById('nav-wrap');
+const heroContainer = document.getElementById('hero-container');
+const heroBox = document.getElementById('hero-box');
+const heroOverlay = document.getElementById('hero-overlay');
+const shouldPlayIntro = (() => {
+  const navigationEntry = performance.getEntriesByType('navigation')[0];
+  return Boolean(navigationEntry && navigationEntry.type === 'reload');
+})();
+document.body.classList.toggle('play-intro', shouldPlayIntro);
+document.getElementById('chev').addEventListener('click', () => {
+  wrap.classList.toggle('collapsed');
+});
+function syncHeroOverlayTarget() {
+  const heroRect = heroBox.getBoundingClientRect();
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty('--hero-target-top', `${heroRect.top}px`);
+  rootStyle.setProperty('--hero-target-right', `${window.innerWidth - heroRect.right}px`);
+  rootStyle.setProperty('--hero-target-bottom', `${window.innerHeight - heroRect.bottom}px`);
+  rootStyle.setProperty('--hero-target-left', `${heroRect.left}px`);
+}
+
+if (shouldPlayIntro) {
+  window.addEventListener('load', syncHeroOverlayTarget);
+  window.addEventListener('resize', syncHeroOverlayTarget);
+  requestAnimationFrame(syncHeroOverlayTarget);
+  heroOverlay.addEventListener('animationend', event => {
+    if (event.animationName === 'fadeOverlay') {
+      heroOverlay.style.display = 'none';
+    }
+  });
+} else {
+  heroOverlay.style.display = 'none';
+}
+
+// ══════════ SMART TOOLTIP POSITIONING ══════════
+const navWrap = document.getElementById('nav-wrap');
+const navHint = document.querySelector('.nav-hint');
+
+if (navWrap && navHint) {
+  navWrap.addEventListener('mousemove', (e) => {
+    const navRect = navWrap.getBoundingClientRect();
+    const navCenterX = navRect.left + navRect.width / 2;
+    
+    // Position tooltip to the left if cursor is on left side, right if on right side
+    if (e.clientX < navCenterX) {
+      navHint.style.left = '0';
+      navHint.style.right = 'auto';
+    } else {
+      navHint.style.left = 'auto';
+      navHint.style.right = '0';
+    }
+  });
+}
+
+// ══════════ DROPDOWN CONTEXT DETECTION ══════════
+const allDropdowns = document.querySelectorAll('.dropdown');
+const blogDropdown = allDropdowns[0];
+const studyDropdown = allDropdowns[1];
+const blogSubpagePattern = /(blog-formal|blog-informal)(\.html)?$/i;
+const studySubpagePattern = /(study-physics|study-latex)(\.html)?$/i;
+if (blogDropdown && blogSubpagePattern.test(window.location.pathname)) {
+  blogDropdown.classList.add('open-force');
+}
+if (studyDropdown && studySubpagePattern.test(window.location.pathname)) {
+  studyDropdown.classList.add('open-force');
+}
+
+// Single click goes to in-page glimpse, double click opens dedicated page.
+document.querySelectorAll('[data-double]').forEach(link => {
+  link.addEventListener('dblclick', event => {
+    event.preventDefault();
+    const target = link.dataset.double;
+    if (target) window.location.href = target;
+  });
+});
+
+// ══════════ MAIN PAGE NAV HIGHLIGHT ══════════
+const mainNavMap = {
+  home: document.querySelector('[data-nav="home"]'),
+  about: document.querySelector('[data-nav="about"]'),
+  updates: document.querySelector('[data-nav="updates"]'),
+  publications: document.querySelector('[data-nav="publications"]'),
+  blog: document.querySelector('[data-nav="blog"]'),
+  study: document.querySelector('[data-nav="study"]'),
+  guidance: document.querySelector('[data-nav="guidance"]')
+};
+const mainSections = [
+  { key: 'home', element: heroContainer },
+  { key: 'about', element: document.getElementById('about-preview') },
+  { key: 'updates', element: document.getElementById('updates') },
+  { key: 'publications', element: document.getElementById('publications') },
+  { key: 'blog', element: document.getElementById('blog-preview') },
+  { key: 'study', element: document.getElementById('study-preview') },
+  { key: 'guidance', element: document.getElementById('guidance-preview') }
+].filter(entry => entry.element);
+
+function setMainNavHighlight(activeKey) {
+  Object.entries(mainNavMap).forEach(([key, node]) => {
+    if (!node) return;
+    if (key === 'home') {
+      // Home button: filled when at top (you ARE on the home page)
+      node.classList.toggle('active', key === activeKey);
+    } else {
+      // Section links: outlined preview style on main page
+      node.classList.remove('active');
+      node.classList.toggle('active-preview', key === activeKey);
+    }
+  });
+}
+
+function syncMainNavFromScroll() {
+  const probe = window.scrollY + window.innerHeight * 0.32;
+  let activeKey = 'home';
+
+  mainSections.forEach(section => {
+    if (section.element.offsetTop <= probe) activeKey = section.key;
+  });
+
+  setMainNavHighlight(activeKey);
+}
+
+window.addEventListener('scroll', syncMainNavFromScroll, { passive: true });
+window.addEventListener('load', syncMainNavFromScroll);
+window.addEventListener('hashchange', syncMainNavFromScroll);
+requestAnimationFrame(syncMainNavFromScroll);
+
+// ══════════ SITE-WIDE SEARCH INDEX ══════════
+// ══════════ SEARCH TO WORD LOCATION ══════════
+const searchInput = document.querySelector('.search-input');
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && this.value) {
+    e.preventDefault();
+    this.value = '';
+    this.blur();
+    clearSearchState();
+    runSearch('');
+    sessionStorage.removeItem('siteSearchQuery');
+  }
+});
+const searchContainer = document.querySelector('.search-container');
+const searchUpBtn = document.querySelector('.search-up');
+const searchDownBtn = document.querySelector('.search-down');
+const searchTrigger = document.querySelector('.search-trigger');
+const searchableNodes = Array.from(document.querySelectorAll('h1, h2, h3, p, a, .nl, .lo, .st, .card'))
+  .filter(node => !node.closest('.search-container'));
+const searchOriginalMap = new WeakMap();
+let activeSearchHit = null;
+let searchMatches = [];
+let activeSearchIndex = -1;
+let lastSearchQuery = '';
+let highlightedSpans = [];
+
+searchableNodes.forEach(node => {
+  searchOriginalMap.set(node, node.innerHTML);
+});
+
+function clearSearchHit() {
+  if (activeSearchHit) {
+    activeSearchHit.classList.remove('active');
+    activeSearchHit = null;
+  }
+}
+
+function restoreSearchableContent() {
+  searchableNodes.forEach(node => {
+    const original = searchOriginalMap.get(node);
+    if (typeof original === 'string' && node.innerHTML !== original) {
+      node.innerHTML = original;
+    }
+  });
+  highlightedSpans = [];
+}
+
+function updateSearchNavState() {
+  searchContainer.classList.toggle('has-results', searchMatches.length > 0);
+}
+
+function clearSearchState() {
+  clearSearchHit();
+  restoreSearchableContent();
+  searchMatches = [];
+  activeSearchIndex = -1;
+  lastSearchQuery = '';
+  updateSearchNavState();
+}
+
+function buildSearchTerms(query) {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return tokens.length ? tokens : [query.toLowerCase()];
+}
+
+function highlightMatchesInElement(root, term) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const matches = [];
+  const lowerTerm = term.toLowerCase();
+  const textNodes = [];
+
+  let current = walker.nextNode();
+  while (current) {
+    const isAlreadyHighlight = current.parentElement && current.parentElement.classList.contains('search-hit-text');
+    if (current.nodeValue.trim() && !isAlreadyHighlight) textNodes.push(current);
+    current = walker.nextNode();
+  }
+
+  textNodes.forEach(node => {
+    let pointer = node;
+    let source = pointer.nodeValue;
+    let lower = source.toLowerCase();
+    let index = lower.indexOf(lowerTerm);
+
+    while (index !== -1) {
+      const before = pointer;
+      const hitStart = before.splitText(index);
+      const after = hitStart.splitText(term.length);
+      const mark = document.createElement('span');
+      mark.className = 'search-hit-text';
+      mark.textContent = hitStart.nodeValue;
+      hitStart.parentNode.replaceChild(mark, hitStart);
+      highlightedSpans.push(mark);
+      matches.push(mark);
+
+      pointer = after;
+      source = pointer.nodeValue;
+      lower = source.toLowerCase();
+      index = lower.indexOf(lowerTerm);
+    }
+  });
+
+  return matches;
+}
+
+function findSearchTargets(query) {
+  restoreSearchableContent();
+  const terms = buildSearchTerms(query).sort((a, b) => b.length - a.length);
+  const matches = [];
+
+  searchableNodes.forEach(node => {
+    terms.forEach(term => {
+      if (term) matches.push(...highlightMatchesInElement(node, term));
+    });
+  });
+
+  return matches;
+}
+
+function focusSearchMatch(index, shouldScroll = true) {
+  if (!searchMatches.length) return;
+
+  clearSearchHit();
+  activeSearchIndex = (index + searchMatches.length) % searchMatches.length;
+  activeSearchHit = searchMatches[activeSearchIndex];
+  activeSearchHit.classList.add('active');
+  if (shouldScroll) {
+    activeSearchHit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+
+
+function runSearch(direction = 1, previewOnly = false) {
+  const query = searchInput.value.trim().toLowerCase();
+  searchInput.classList.remove('search-miss');
+
+  if (!query) {
+    clearSearchState();
+    return;
+  }
+
+  if (query !== lastSearchQuery) {
+    clearSearchHit();
+    searchMatches = findSearchTargets(query);
+    activeSearchIndex = -1;
+    lastSearchQuery = query;
+  }
+
+  if (!searchMatches.length) {
+    searchInput.classList.add('search-miss');
+    setTimeout(() => searchInput.classList.remove('search-miss'), 700);
+    updateSearchNavState();
+    return;
+  }
+
+  if (previewOnly) {
+    if (activeSearchIndex < 0) focusSearchMatch(0, false);
+  } else {
+    focusSearchMatch(activeSearchIndex + direction, true);
+  }
+  updateSearchNavState();
+}
+
+const pageTextIndex = {
+  home: 'home graduate researcher iit hyderabad research updates publications blog study resources guidance',
+  about: 'about me researcher educator writer quantum mechanics mathematical physics scientific writing education',
+  updates: 'updates milestones arxiv talks events posts teaching',
+  publications: 'publications papers preprints journals citations',
+  blog: 'blog formal informal reflections writing notes',
+  study: 'study resources physics latex notes tutorials',
+  guidance: 'guidance mentoring roadmap tips preparation books'
+};
+
+function navKeyForNode(node) {
+  if (!node) return '';
+  const navKey = node.dataset && node.dataset.nav;
+  if (navKey) return navKey;
+  if (node.classList.contains('hb')) return 'home';
+  const href = (node.getAttribute('href') || '').toLowerCase();
+  const text = (node.textContent || '').toLowerCase();
+  if (href.includes('about') || text.includes('about')) return 'about';
+  if (href.includes('updates') || text.includes('update')) return 'updates';
+  if (href.includes('publications') || text.includes('publication')) return 'publications';
+  if (href.includes('blog') || text.includes('blog')) return 'blog';
+  if (href.includes('study') || text.includes('study')) return 'study';
+  if (href.includes('guidance') || text.includes('guidance')) return 'guidance';
+  if (href.includes('index_version8')) return 'home';
+  return '';
+}
+
+function updateNavLinksForQuery(query) {
+  document.querySelectorAll('a[href]').forEach(link => {
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('javascript:')) return;
+    if (!href.includes('.html')) return;
+    const parts = href.split('#');
+    const path = parts[0].split('?')[0];
+    const hash = parts[1] ? '#' + parts[1] : '';
+    const nextHref = query ? path + '?search=' + encodeURIComponent(query) + hash : path + hash;
+    link.setAttribute('href', nextHref);
+  });
+
+  document.querySelectorAll('[data-double]').forEach(link => {
+    const target = (link.dataset.double || '').split('?')[0];
+    if (!target) return;
+    link.dataset.double = query ? target + '?search=' + encodeURIComponent(query) : target;
+  });
+
+  const homeShortcut = document.querySelector('.home-shortcut');
+  if (homeShortcut) {
+    homeShortcut.setAttribute('href', query ? 'index_Version8.html?search=' + encodeURIComponent(query) : 'index_Version8.html');
+  }
+}
+
+function updateStarIndicators(query) {
+  const q = (query || '').toLowerCase().trim();
+  document.querySelectorAll('.nl.search-star, .hb.search-star, .home-shortcut.search-star').forEach(node => {
+    node.classList.remove('search-star');
+  });
+  searchContainer.classList.remove('search-has-cross');
+  if (!q) return;
+
+  let hasOtherMatches = false;
+  document.querySelectorAll('.nl, .hb, .home-shortcut').forEach(node => {
+    const key = navKeyForNode(node);
+    if (!key || key === 'home') return;
+    const searchableText = pageTextIndex[key] || '';
+    if (searchableText.includes(q)) {
+      node.classList.add('search-star');
+      hasOtherMatches = true;
+    }
+  });
+  if (hasOtherMatches) searchContainer.classList.add('search-has-cross');
+}
+
+function syncPersistentSearchState() {
+  const urlSearch = new URLSearchParams(window.location.search).get('search') || '';
+  const savedSearch = sessionStorage.getItem('siteSearchQuery') || '';
+  const initialSearch = (urlSearch || savedSearch || '').trim();
+
+  if (initialSearch && !searchInput.value.trim()) {
+    searchInput.value = initialSearch;
+    runSearch(1, true);
+  }
+
+  const currentQuery = searchInput.value.trim();
+}
+
+function pulseSearchNav(button) {
+  button.classList.add('active');
+  window.setTimeout(() => button.classList.remove('active'), 150);
+}
+
+searchTrigger.addEventListener('click', () => {
+  searchInput.focus();
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    searchInput.value = '';
+    clearSearchState();
+    searchInput.blur();
+    return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    runSearch(e.shiftKey ? -1 : 1);
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    pulseSearchNav(searchUpBtn);
+    runSearch(-1);
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    pulseSearchNav(searchDownBtn);
+    runSearch(1);
+  }
+});
+searchInput.addEventListener('input', () => {
+  searchInput.classList.remove('search-miss');
+  const query = searchInput.value.trim();
+
+  if (query) sessionStorage.setItem('siteSearchQuery', query);
+  else sessionStorage.removeItem('siteSearchQuery');
+  
+  if (!query) {
+    clearSearchState();
+    return;
+  }
+
+  if (query.toLowerCase() !== lastSearchQuery) {
+    clearSearchHit();
+    restoreSearchableContent();
+    searchMatches = [];
+    activeSearchIndex = -1;
+    updateSearchNavState();
+  }
+  
+  runSearch(1, true);
+});
+
+[searchUpBtn, searchDownBtn].forEach(btn => {
+  btn.addEventListener('mousedown', e => e.preventDefault());
+});
+searchUpBtn.addEventListener('click', () => {
+  pulseSearchNav(searchUpBtn);
+  runSearch(-1);
+});
+searchDownBtn.addEventListener('click', () => {
+  pulseSearchNav(searchDownBtn);
+  runSearch(1);
+});
+
+syncPersistentSearchState();
+
+// ══════════ MAIN PAGE PROFILE PHOTO ══════════
+const mainProfileAvatar = document.getElementById('mainProfileAvatar');
+const mainProfileImg = document.getElementById('mainProfileImg');
+const mainProfileFallback = document.getElementById('mainProfileFallback');
+
+if (mainProfileAvatar && mainProfileImg && mainProfileFallback) {
+  const savedMainProfile = localStorage.getItem('mainProfileImageData');
+  if (savedMainProfile) {
+    mainProfileImg.src = savedMainProfile;
+    mainProfileImg.style.display = 'block';
+    mainProfileFallback.style.display = 'none';
+  }
+
+  const mainProfileInput = document.createElement('input');
+  mainProfileInput.type = 'file';
+  mainProfileInput.accept = 'image/*';
+  mainProfileInput.style.display = 'none';
+  document.body.appendChild(mainProfileInput);
+
+  mainProfileAvatar.addEventListener('click', () => {
+    mainProfileInput.click();
+  });
+
+  mainProfileInput.addEventListener('change', (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const imageData = loadEvent.target && loadEvent.target.result;
+      if (typeof imageData !== 'string') return;
+      localStorage.setItem('mainProfileImageData', imageData);
+      mainProfileImg.src = imageData;
+      mainProfileImg.style.display = 'block';
+      mainProfileFallback.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ══════════ SCROLL REVEAL ══════════
+const obs = new IntersectionObserver(entries =>
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }),
+  { threshold: .12 });
+document.querySelectorAll('.rv').forEach(el => obs.observe(el));
+
+// ══════════ WARP SPEED CANVAS ANIMATION ══════════
+const warpCanvases = Array.from(document.querySelectorAll('.warp-canvas')).map(canvas => ({
+  canvas,
+  ctx: canvas.getContext('2d'),
+  w: 0,
+  h: 0
+}));
+let stars = [];
+const numStars = 400; // Number of particles
+const speed = 12;     // Speed of the warp effect
+
+function initWarp() {
+  syncHeroOverlayTarget();
+  warpCanvases.forEach(surface => {
+    surface.w = surface.canvas.width = surface.canvas.clientWidth || surface.canvas.offsetWidth || window.innerWidth;
+    surface.h = surface.canvas.height = surface.canvas.clientHeight || surface.canvas.offsetHeight || window.innerHeight;
+  });
+  stars = [];
+  for(let i=0; i<numStars; i++) {
+    stars.push(new Star());
+  }
+}
+
+class Star {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = (Math.random() - 0.5) * 2500;
+    this.y = (Math.random() - 0.5) * 2500;
+    this.z = Math.random() * 2000;
+    this.pz = this.z;
+    // Mix of purple and blue matching the image
+    this.color = Math.random() > 0.5 ? '#6633ff' : '#3b3bff';
+  }
+  update() {
+    this.pz = this.z;
+    this.z -= speed;
+    if(this.z < 1) {
+      this.reset();
+      this.pz = this.z;
+    }
+  }
+  draw(surface) {
+    let sx = (this.x / this.z) * (surface.w / 2) + surface.w / 2;
+    let sy = (this.y / this.z) * (surface.h / 2) + surface.h / 2;
+    let px = (this.x / this.pz) * (surface.w / 2) + surface.w / 2;
+    let py = (this.y / this.pz) * (surface.h / 2) + surface.h / 2;
+
+    surface.ctx.beginPath();
+    surface.ctx.moveTo(px, py);
+    surface.ctx.lineTo(sx, sy);
+    surface.ctx.strokeStyle = this.color;
+    surface.ctx.lineWidth = 2.5;
+    surface.ctx.stroke();
+  }
+}
+
+function animateWarp() {
+  warpCanvases.forEach(surface => {
+    surface.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    surface.ctx.fillRect(0, 0, surface.w, surface.h);
+  });
+  for(let star of stars) {
+    star.update();
+    warpCanvases.forEach(surface => star.draw(surface));
+  }
+  requestAnimationFrame(animateWarp);
+}
+
+// Start warp drive
+initWarp();
+animateWarp();
+window.addEventListener('resize', initWarp);
+
+</script>
+</body>
+</html>
